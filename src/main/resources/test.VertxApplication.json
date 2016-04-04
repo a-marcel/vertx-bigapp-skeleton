@@ -1,0 +1,13 @@
+{
+	"main": "test.VertxApplication",
+	"options": {
+	    "config" : {
+	     	"verticals": [
+				"test.MainVerticle"
+			],
+			"serverServiceName": "test.ServerVerticle" 
+	    },
+	    "worker": false,
+	    "isolationGroup": "mygroup"
+	}
+}

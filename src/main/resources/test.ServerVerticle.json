@@ -1,0 +1,11 @@
+{
+	"main": "test.ServerVerticle",
+	"options": {
+	    "config" : {
+	    	"http.port": 8080,
+	    	"http.host": "localhost"
+	    },
+	    "worker": false,
+	    "isolationGroup": "mygroup"
+	}	
+}

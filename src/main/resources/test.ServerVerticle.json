@@ -2,7 +2,7 @@
 	"main": "test.ServerVerticle",
 	"options": {
 	    "config" : {
-	    	"http.port": 8080,
+	    	"http.port": 8088,
 	    	"http.host": "localhost"
 	    },
 	    "worker": false,

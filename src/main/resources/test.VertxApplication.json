@@ -3,7 +3,16 @@
 	"options": {
 	    "config" : {
 	     	"verticals": [
-				"test.MainVerticle"
+	     	              {
+	     	            	  "name": "test.MainVerticle",
+	     	            	  "routes": [
+	     	            	             {
+	     	            	            	 "path": "/",
+	     	            	            	 "regexPath": "///",
+	     	            	            	 "channelName": ""
+	     	            	             }
+	     	            	  ]
+	     	              }
 			],
 			"serverServiceName": "test.ServerVerticle" 
 	    },

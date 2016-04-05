@@ -6,8 +6,8 @@ import io.vertx.core.Handler;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import test.codec.HttpRequest;
-import test.codec.HttpResponse;
+import test.codec.request.HttpRequest;
+import test.codec.response.HttpResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.Map;
@@ -23,7 +23,7 @@ public class RouterHandler implements Handler< RoutingContext > {
 
 	@Override
 	public void handle(RoutingContext requestBody) {
-		requestBody.vertx().eventBus().send(channelName, HttpRequest.buildFromVertxHttpServerRequest(requestBody.request()), new Handler< AsyncResult< Message< HttpResponse > > >() {
+		requestBody.vertx().eventBus().send(channelName, new HttpRequest(requestBody.request()), new Handler< AsyncResult< Message< HttpResponse > > >() {
 			@Override
 			public void handle(AsyncResult< Message< HttpResponse > > reply) {
 				Message< HttpResponse > message = reply.result();
@@ -35,23 +35,29 @@ public class RouterHandler implements Handler< RoutingContext > {
 						throw new Exception("Not a valid message");
 					}
 
-					HttpResponse messageResponse = (HttpResponse) message.body();
+					/*
+					 * HttpResponse messageResponse = (HttpResponse)
+					 * message.body();
+					 * 
+					 * if (null != messageResponse.getStatusCode()) {
+					 * response.setStatusCode(messageResponse.getStatusCode());
+					 * }
+					 * 
+					 * if (null != messageResponse.getHeader()) {
+					 * for (Map.Entry< String, String > header :
+					 * messageResponse.getHeader().entrySet()) {
+					 * response.putHeader(header.getKey(), header.getValue());
+					 * }
+					 * }
+					 * 
+					 * if (null == messageResponse.getBody()) {
+					 * response.end();
+					 * } else {
+					 * response.end(messageResponse.getBody());
+					 * }
+					 */
 
-					if (null != messageResponse.getStatusCode()) {
-						response.setStatusCode(messageResponse.getStatusCode());
-					}
-
-					if (null != messageResponse.getHeader()) {
-						for (Map.Entry< String, String > header : messageResponse.getHeader().entrySet()) {
-							response.putHeader(header.getKey(), header.getValue());
-						}
-					}
-
-					if (null == messageResponse.getBody()) {
-						response.end();
-					} else {
-						response.end(messageResponse.getBody());
-					}
+					response.end("huhu");
 
 				} catch (Exception e) {
 					logger.warn(String.format("Wrong response type (channelName: %s) : %s", channelName, e.getMessage()));

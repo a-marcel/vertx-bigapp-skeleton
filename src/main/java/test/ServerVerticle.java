@@ -10,65 +10,54 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 
-public class ServerVerticle
-    extends AbstractVerticle
-{
+public class ServerVerticle extends AbstractVerticle {
 
-    Logger logger = LoggerFactory.getLogger( ServerVerticle.class );
+	Logger logger = LoggerFactory.getLogger(ServerVerticle.class);
 
-    @Override
-    public void start( Future<Void> fut )
-        throws Exception
-    {
-        super.start();
+	@Override
+	public void start(Future< Void > fut) throws Exception {
+		super.start();
 
-        HttpServer server = vertx.createHttpServer();
+		HttpServer server = vertx.createHttpServer();
 
-        Integer port = config().getInteger( "http.port", 8081 );
-        String host = config().getString( "http.host", "localhost" );
+		Integer port = config().getInteger("http.port", 8081);
+		String host = config().getString("http.host", "localhost");
 
-        Router router = Router.router( vertx );
+		Router router = Router.router(vertx);
 
-        if ( config().containsKey( "routes" ) )
-        {
-            parseRouteConfig( config().getJsonArray( "routes" ), router );
-        }
+		if (config().containsKey("routes")) {
 
-        // router.route().method(HttpMethod.GET).handler(new
-        // RouterHandler(EventBusChannelNames.HTTP_GET_REQUEST_CHANNEL));
+			parseRouteConfig(config().getJsonArray("routes"), router);
+		}
 
-        server.requestHandler( router::accept );
+		// router.route().method(HttpMethod.GET).handler(new
+		// RouterHandler(EventBusChannelNames.HTTP_GET_REQUEST_CHANNEL));
 
-        server.listen( port, host, result -> {
-            if ( result.succeeded() )
-            {
-                logger.info( "Web Server listen on port " + port );
-                fut.complete();
-            }
-            else
-            {
-                logger.error( "Web server not stated: " + result.cause().getMessage() );
-                fut.fail( result.cause() );
-            }
-        } );
+		server.requestHandler(router::accept);
 
-    }
+		server.listen(port, host, result ->
+		{
+			if (result.succeeded()) {
+				logger.info("Web Server listen on port " + port);
+				fut.complete();
+			} else {
+				logger.error("Web server not stated: " + result.cause().getMessage());
+				fut.fail(result.cause());
+			}
+		});
 
-    void parseRouteConfig( JsonArray routes, Router router )
-    {
-        for ( Object object : routes )
-        {
-            if ( object instanceof JsonObject )
-            {
-                JsonObject route = (JsonObject) object;
+	}
 
-                if ( route.containsKey( "path" ) )
-                {
-                    router.route( route.getString( "path" ) ).handler( routingContext -> {
-                        logger.info( "Path " + route.getString( "path" ) );
-                    } );
-                }
-            }
-        }
-    }
+	void parseRouteConfig(JsonArray routes, Router router) {
+		for (Object object : routes) {
+			if (object instanceof JsonObject) {
+				JsonObject route = (JsonObject) object;
+
+				if (route.containsKey("path")) {
+					logger.debug("Binding url {}", route.getString("path"));
+					router.route(route.getString("path")).handler(new RouterHandler("testChannel"));
+				}
+			}
+		}
+	}
 }

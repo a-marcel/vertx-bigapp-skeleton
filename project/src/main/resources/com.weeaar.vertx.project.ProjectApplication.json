@@ -1,0 +1,46 @@
+{
+	"main": "com.weeaar.vertx.project.ProjectApplication",
+	"options": {
+	    "config" : {
+	     	"verticals": [
+	     	              {
+	     	            	  "name": "com.weeaar.vertx.verticals.health.HealthApplication",
+	     	            	  "routes": [
+	     	            	             {
+	     	            	            	 "path": "/health",
+	     	            	            	 "regexPath": "///",
+	     	            	            	 "channelName": "testChannel"
+	     	            	             }
+	     	            	  ]
+	     	              },
+	     	              {
+	     	            	  "name": "com.weeaar.vertx.verticals.robotstxt.RobotsApplication",
+	     	            	  "routes": [
+	     	            	             {
+	     	            	            	 "path": "/robots.txt",
+	     	            	            	 "channelName": "robotsChannel"
+	     	            	             }
+	     	            	  ]
+	     	              },
+	     	              {
+	     	            	  "name": "JavascriptVerticle.js",
+	     	            	  "routes": [
+	     	            	             {
+	     	            	            	 "path": "/",
+	     	            	            	 "channelName": "webChannel"
+	     	            	             }
+	     	            	  ]
+	     	              }
+			],
+			"serverService": {
+				"name": "com.weeaar.vertx.server.ServerVerticle",				
+				"config": {
+			    	"http.port": 8088,
+			    	"http.host": "localhost"
+				}
+			} 
+	    },
+	    "worker": false,
+	    "isolationGroup": "mygroup"
+	}
+}

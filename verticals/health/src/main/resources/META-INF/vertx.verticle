@@ -1,1 +1,1 @@
-health=com.weeaar.vertx.verticals.health.HealthApplication
+com.weeaar.vertx.verticals.health.HealthApplication

@@ -1,133 +1,140 @@
 package com.weeaar.vertx.server;
 
-import java.nio.charset.Charset;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.weeaar.vertx.codec.request.HttpRequest;
-import com.weeaar.vertx.codec.response.HttpResponse;
+import com.weeaar.vertx.annotation.VertxWebConfig;
 import com.weeaar.vertx.codec.service.ServiceLoader;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Launcher;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.Router;
-import io.vertx.rxjava.core.CompositeFuture;
-import io.vertx.rxjava.core.Future;
-import io.vertx.service.ServiceVerticleFactory;
 
-public abstract class VertxApplication extends AbstractVerticle {
+public abstract class VertxApplication
+    extends AbstractVerticle
+{
+    static Logger logger = LoggerFactory.getLogger( VertxApplication.class );
 
-	static Logger logger = LoggerFactory.getLogger(VertxApplication.class);
+    public static void main( String[] args )
+    {
+        Launcher.main( new String[] { "run", "service:" + VertxApplication.class.getName() } );
+    }
 
-	public static void main(String[] args) {
-		Launcher.main(new String[] { "run", "service:" + VertxApplication.class.getName() });
-	}
+    @Override
+    public void start()
+        throws Exception
+    {
+        logger.debug( "starting" );
 
-	@Override
-	public void start() throws Exception {
-		logger.debug("starting");
+        ServiceLoader serviceLoader = new ServiceLoader();
+        List<String> verticals = serviceLoader.findVerticles();
 
-		ServiceLoader serviceLoader = new ServiceLoader();
-		List< String > verticals = serviceLoader.findVerticles();
+        @SuppressWarnings( "rawtypes" )
+        List<Future> allVerticalFuture = new ArrayList<Future>();
 
-		ServiceVerticleFactory factory = new ServiceVerticleFactory();
+        List<JsonObject> routes = new ArrayList<JsonObject>();
 
-		List< Future > allVerticalFuture = new ArrayList< Future >();
+        if ( null != verticals )
+        {
+            for ( String name : verticals )
+            {
+                /*
+                 * Figure out routes
+                 */
+                Method[] methods = Class.forName( name ).getMethods();
+                for ( Method method : methods )
+                {
+                    if ( method.isAnnotationPresent( VertxWebConfig.class ) )
+                    {
+                        VertxWebConfig vertxWebConfig = method.getAnnotation( VertxWebConfig.class );
 
-		List< JsonObject > routes = new ArrayList< JsonObject >();
+                        JsonObject route = new JsonObject();
+                        if ( null != vertxWebConfig.channelName() )
+                        {
+                            route.put( "channelName", vertxWebConfig.channelName() );
+                        }
 
-		if (null != verticals) {
-			for (String name : verticals) {
-				DeploymentOptions deploymentOptions = new DeploymentOptions();
+                        if ( null != vertxWebConfig.path() )
+                        {
+                            route.put( "path", vertxWebConfig.path() );
+                        }
 
-				io.vertx.core.Future< String > configLoaderFuture = io.vertx.core.Future.future();
-				configLoaderFuture.setHandler(resultString ->
-				{
-					if (resultString.succeeded()) {
-						Future< String > verticleFuture = Future.future();
+                        if ( null != vertxWebConfig.pathRegex() )
+                        {
+                            route.put( "pathRegex", vertxWebConfig.pathRegex() );
+                        }
 
-						DeploymentOptions x = deploymentOptions;
-						if (null != deploymentOptions.getConfig()
-								&& deploymentOptions.getConfig().containsKey("routes")) {
-							for (Object route : deploymentOptions.getConfig().getJsonArray("routes")) {
-								if (route instanceof JsonObject) {
-									routes.add((JsonObject) route);
-								}
-							}
-						}
+                        if ( !route.isEmpty() )
+                        {
+                            routes.add( route );
+                        }
+                    }
+                }
 
-						vertx.deployVerticle(name, deploymentOptions, verticleFuture.completer());
+                /*
+                 * Starting verticle
+                 */
+                Future<String> verticleFuture = Future.future();
 
-						allVerticalFuture.add(verticleFuture);
-					}
-				});
+                vertx.deployVerticle( name, verticleFuture.completer() );
+                allVerticalFuture.add( verticleFuture );
+            }
+        }
 
-				factory.resolve(name, deploymentOptions, getClass().getClassLoader(), configLoaderFuture);
-			}
-		}
+        if ( allVerticalFuture.size() > 0 )
+        {
+            CompositeFuture.all( allVerticalFuture ).setHandler( ar -> {
+                if ( ar.succeeded() )
+                {
+                    logger.info( "All verticals successfull deployed" );
 
-		/*
-		 * if (null != verticals) {
-		 * for (String name : verticals) {
-		 * JsonObject options = (JsonObject) object;
-		 * 
-		 * if (options.containsKey("routes")) {
-		 * routes.addAll(options.getJsonArray("routes").getList());
-		 * }
-		 * 
-		 * Future< String > verticleFuture = Future.future();
-		 * 
-		 * DeploymentOptions deploymentOptions = new DeploymentOptions();
-		 * deploymentOptions.setConfig(options);
-		 * 
-		 * vertx.deployVerticle(options.getString("name"), deploymentOptions,
-		 * verticleFuture.completer());
-		 * 
-		 * allVerticalFuture.add(verticleFuture);
-		 * }
-		 * }
-		 */
+                    startServerVerticle( routes );
+                }
+                else
+                {
+                    logger.error( "Deploying verticals failed", ar.cause() );
+                }
+            } );
+        }
+        else
+        {
+            startServerVerticle( routes );
+        }
+    }
 
-		if (allVerticalFuture.size() > 0) {
-			CompositeFuture.all(allVerticalFuture).setHandler(ar ->
-			{
-				if (ar.succeeded()) {
-					logger.info("All verticals successfull deployed");
+    void startServerVerticle( List<JsonObject> routes )
+    {
+        if ( config().containsKey( "serverService" ) )
+        {
+            JsonObject serverServiceOptions = config().getJsonObject( "serverService" );
 
-					if (config().containsKey("serverService")) {
-						JsonObject serverServiceOptions = config().getJsonObject("serverService");
-						String serverVerticleName = serverServiceOptions.getString("name");
+            String serverVerticleName = serverServiceOptions.getString( "name" );
 
-						JsonObject deployConfig = new JsonObject();
-						deployConfig.put("routes", routes);
+            JsonObject deployConfig = new JsonObject();
+            deployConfig.put( "routes", routes );
 
-						DeploymentOptions options = new DeploymentOptions();
+            DeploymentOptions options = new DeploymentOptions();
 
-						if (serverServiceOptions.containsKey("config")) {
-							JsonObject serverConfig = serverServiceOptions.getJsonObject("config");
+            if ( serverServiceOptions.containsKey( "config" ) )
+            {
+                JsonObject serverConfig = serverServiceOptions.getJsonObject( "config" );
 
-							for (Map.Entry< String, Object > configObject : serverConfig.getMap().entrySet()) {
-								deployConfig.put(configObject.getKey(), configObject.getValue());
-							}
+                for ( Map.Entry<String, Object> configObject : serverConfig.getMap().entrySet() )
+                {
+                    deployConfig.put( configObject.getKey(), configObject.getValue() );
+                }
 
-							options.setConfig(deployConfig);
-						}
+                options.setConfig( deployConfig );
+            }
 
-						vertx.deployVerticle(serverVerticleName, options);
-					}
-
-				} else {
-					logger.error("Deploying verticals failed", ar.cause());
-				}
-			});
-		}
-
-	}
+            vertx.deployVerticle( serverVerticleName, options );
+        }
+    }
 }

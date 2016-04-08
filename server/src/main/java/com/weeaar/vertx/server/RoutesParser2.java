@@ -8,12 +8,12 @@ import java.util.NoSuchElementException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-public class RoutesParser implements Iterator< Route >, Iterable< Route > {
+public class RoutesParser2 implements Iterator< Route >, Iterable< Route > {
 	List< Route > routes;
 
 	private int index;
 
-	public RoutesParser(JsonArray routeJson) {
+	public RoutesParser2(JsonArray routeJson) {
 		routes = new ArrayList< Route >();
 
 		for (Object route : routeJson) {

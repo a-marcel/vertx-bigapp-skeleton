@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.weeaar.vertx.codec.request.HttpRequest;
 import com.weeaar.vertx.codec.response.HttpResponse;
+import com.weeaar.vertx.codec.service.ServiceLoader;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
@@ -19,6 +20,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.rxjava.core.CompositeFuture;
 import io.vertx.rxjava.core.Future;
+import io.vertx.service.ServiceVerticleFactory;
 
 public abstract class VertxApplication extends AbstractVerticle {
 
@@ -32,35 +34,66 @@ public abstract class VertxApplication extends AbstractVerticle {
 	public void start() throws Exception {
 		logger.debug("starting");
 
-		JsonArray verticals = null;
-		if (config().containsKey("verticals")) {
-			verticals = config().getJsonArray("verticals");
-		}
+		ServiceLoader serviceLoader = new ServiceLoader();
+		List< String > verticals = serviceLoader.findVerticles();
+
+		ServiceVerticleFactory factory = new ServiceVerticleFactory();
 
 		List< Future > allVerticalFuture = new ArrayList< Future >();
 
-		List< JsonArray > routes = new ArrayList< JsonArray >();
+		List< JsonObject > routes = new ArrayList< JsonObject >();
 
 		if (null != verticals) {
-			for (Object object : verticals) {
-				if (object instanceof JsonObject) {
-					JsonObject options = (JsonObject) object;
+			for (String name : verticals) {
+				DeploymentOptions deploymentOptions = new DeploymentOptions();
 
-					if (options.containsKey("routes")) {
-						routes.addAll(options.getJsonArray("routes").getList());
+				io.vertx.core.Future< String > configLoaderFuture = io.vertx.core.Future.future();
+				configLoaderFuture.setHandler(resultString ->
+				{
+					if (resultString.succeeded()) {
+						Future< String > verticleFuture = Future.future();
+
+						DeploymentOptions x = deploymentOptions;
+						if (null != deploymentOptions.getConfig()
+								&& deploymentOptions.getConfig().containsKey("routes")) {
+							for (Object route : deploymentOptions.getConfig().getJsonArray("routes")) {
+								if (route instanceof JsonObject) {
+									routes.add((JsonObject) route);
+								}
+							}
+						}
+
+						vertx.deployVerticle(name, deploymentOptions, verticleFuture.completer());
+
+						allVerticalFuture.add(verticleFuture);
 					}
+				});
 
-					Future< String > verticleFuture = Future.future();
-
-					DeploymentOptions deploymentOptions = new DeploymentOptions();
-					deploymentOptions.setConfig(options);
-
-					vertx.deployVerticle(options.getString("name"), deploymentOptions, verticleFuture.completer());
-
-					allVerticalFuture.add(verticleFuture);
-				}
+				factory.resolve(name, deploymentOptions, getClass().getClassLoader(), configLoaderFuture);
 			}
 		}
+
+		/*
+		 * if (null != verticals) {
+		 * for (String name : verticals) {
+		 * JsonObject options = (JsonObject) object;
+		 * 
+		 * if (options.containsKey("routes")) {
+		 * routes.addAll(options.getJsonArray("routes").getList());
+		 * }
+		 * 
+		 * Future< String > verticleFuture = Future.future();
+		 * 
+		 * DeploymentOptions deploymentOptions = new DeploymentOptions();
+		 * deploymentOptions.setConfig(options);
+		 * 
+		 * vertx.deployVerticle(options.getString("name"), deploymentOptions,
+		 * verticleFuture.completer());
+		 * 
+		 * allVerticalFuture.add(verticleFuture);
+		 * }
+		 * }
+		 */
 
 		if (allVerticalFuture.size() > 0) {
 			CompositeFuture.all(allVerticalFuture).setHandler(ar ->

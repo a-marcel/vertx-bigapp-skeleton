@@ -60,7 +60,7 @@ public class HttpResponseHandler implements Handler< AsyncResult< Message< HttpR
 				}
 
 				if (null == returnResponse.headers() && null == returnResponse.trailers()
-						&& null == returnResponse.getBody()) {
+						&& null == returnResponse.getBody() && null == returnResponse.getStatusCode()) {
 					response.setStatusCode(HttpResponseStatus.NO_CONTENT.code());
 				}
 			}

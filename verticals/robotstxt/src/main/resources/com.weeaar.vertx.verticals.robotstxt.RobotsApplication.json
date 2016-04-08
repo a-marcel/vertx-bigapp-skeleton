@@ -1,0 +1,13 @@
+{
+	"main": "com.weeaar.vertx.verticals.robotstxt.RobotsApplication",
+	"options": {
+	    "config" : {
+			"routes": [
+				{
+					"path": "/robots.txt",
+					"channelName": "robotsChannel"
+				}
+			]
+	    }
+	}
+}

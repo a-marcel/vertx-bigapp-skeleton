@@ -74,7 +74,7 @@ public class HttpResponse {
 	}
 
 	public void setStatusCode(Integer statusCode) {
-		json.put("statusMessage", statusCode);
+		json.put("statusCode", statusCode);
 	}
 
 	public void addHeader(String name, String value) {

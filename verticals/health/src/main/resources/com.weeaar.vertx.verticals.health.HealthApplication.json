@@ -1,0 +1,14 @@
+{
+	"main": "com.weeaar.vertx.verticals.health.HealthApplication",
+	"options": {
+	    "config" : {
+	    	"routes": [
+				{
+					"path": "/health",
+					"regexPath": "///",
+					"channelName": "testChannel"
+				}
+			]
+	    }
+	}
+}

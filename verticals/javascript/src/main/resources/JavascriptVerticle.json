@@ -1,0 +1,13 @@
+{
+	"main": "JavascriptVerticle.json",
+	"options": {
+	    "config" : {
+			"routes": [
+				{
+					"path": "/",
+					"channelName": "webChannel"
+				}
+			]
+		}
+	}
+}

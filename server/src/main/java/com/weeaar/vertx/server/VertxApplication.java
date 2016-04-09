@@ -48,32 +48,37 @@ public abstract class VertxApplication
                 /*
                  * Figure out routes
                  */
-                Method[] methods = Class.forName( name ).getMethods();
-                for ( Method method : methods )
+                if ( !name.contains( ".js" ) )
                 {
-                    if ( method.isAnnotationPresent( VertxWebConfig.class ) )
+                    Method[] methods = Class.forName( name ).getMethods();
+                    for ( Method method : methods )
                     {
-                        VertxWebConfig vertxWebConfig = method.getAnnotation( VertxWebConfig.class );
-
-                        JsonObject route = new JsonObject();
-                        if ( null != vertxWebConfig.channelName() )
+                        if ( method.isAnnotationPresent( VertxWebConfig.class ) )
                         {
-                            route.put( "channelName", vertxWebConfig.channelName() );
-                        }
+                            VertxWebConfig vertxWebConfig = method.getAnnotation( VertxWebConfig.class );
 
-                        if ( null != vertxWebConfig.path() )
-                        {
-                            route.put( "path", vertxWebConfig.path() );
-                        }
+                            JsonObject route = new JsonObject();
+                            if ( null != vertxWebConfig.channelName() )
+                            {
+                                route.put( "channelName", vertxWebConfig.channelName() );
+                            }
 
-                        if ( null != vertxWebConfig.pathRegex() )
-                        {
-                            route.put( "pathRegex", vertxWebConfig.pathRegex() );
-                        }
+                            if ( null != vertxWebConfig.path() )
+                            {
+                                if ( vertxWebConfig.pathIsRegex() )
+                                {
+                                    route.put( "pathRegex", vertxWebConfig.path() );
+                                }
+                                else
+                                {
+                                    route.put( "path", vertxWebConfig.path() );
+                                }
+                            }
 
-                        if ( !route.isEmpty() )
-                        {
-                            routes.add( route );
+                            if ( !route.isEmpty() )
+                            {
+                                routes.add( route );
+                            }
                         }
                     }
                 }

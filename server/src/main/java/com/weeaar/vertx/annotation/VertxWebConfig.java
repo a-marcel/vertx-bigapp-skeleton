@@ -11,7 +11,7 @@ public @interface VertxWebConfig
 {
     String channelName() default "";
 
-    String path() default "";
+    String path();
 
-    String pathRegex() default "";
+    boolean pathIsRegex() default false;
 }

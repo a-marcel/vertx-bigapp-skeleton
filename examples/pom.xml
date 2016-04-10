@@ -8,12 +8,13 @@
 	<packaging>pom</packaging>
 
 	<properties>
-		<!-- <main.class>com.weeaar.vertxwebconfig.examples.server.ProjectApplication</main.class>-->
-
 		<java.version>1.8</java.version>
 		<vertx.version>3.2.1</vertx.version>
 		<timestamp>${maven.build.timestamp}</timestamp>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 
 	<modules>
@@ -33,7 +34,6 @@
 			<artifactId>vertx-core</artifactId>
 			<version>${vertx.version}</version>
 		</dependency>
-
 	</dependencies>
 
 	<build>

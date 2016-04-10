@@ -2,9 +2,9 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.weeaar</groupId>
+	<groupId>com.weeaar</groupId>
 	<artifactId>vertx-web-config</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
 		<java.version>1.8</java.version>
@@ -44,10 +44,17 @@
 			<version>${vertx.version}</version>
 		</dependency>
 
+		<!-- <dependency>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-shade-plugin</artifactId>
+			<version>2.4.3</version>
+		</dependency>-->
+
 	</dependencies>
 
 	<build>
 		<pluginManagement>
+		
 			<plugins>
 				<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
@@ -65,6 +72,7 @@
 							<arg>-AoutputDirectory=${project.basedir}/src/main</arg>
 						</compilerArgs>
 					</configuration>
+					<dependencies></dependencies>
 				</plugin>
 			</plugins>
 		</pluginManagement>

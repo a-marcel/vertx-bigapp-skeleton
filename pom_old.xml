@@ -1,10 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
-    <groupId>com.weeaar</groupId>
-	<artifactId>vertx-web-config</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+	<groupId>com.weeaar.vertx</groupId>
+	<artifactId>skeleton</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
 		<java.version>1.8</java.version>
@@ -12,39 +11,13 @@
 		<timestamp>${maven.build.timestamp}</timestamp>
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
 	</properties>
+	<packaging>pom</packaging>
 
-	<dependencies>
-		<dependency>
-			<groupId>io.vertx</groupId>
-			<artifactId>vertx-core</artifactId>
-			<version>${vertx.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>io.vertx</groupId>
-			<artifactId>vertx-service-factory</artifactId>
-			<version>${vertx.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>io.vertx</groupId>
-			<artifactId>vertx-web</artifactId>
-			<version>${vertx.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>io.vertx</groupId>
-			<artifactId>vertx-rx-java</artifactId>
-			<version>${vertx.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>io.vertx</groupId>
-			<artifactId>vertx-codegen</artifactId>
-			<version>${vertx.version}</version>
-		</dependency>
-
-	</dependencies>
+	<modules>
+		<module>server</module>
+		<module>verticals</module>
+		<module>project</module>
+	</modules>
 
 	<build>
 		<pluginManagement>
@@ -69,5 +42,4 @@
 			</plugins>
 		</pluginManagement>
 	</build>
-
 </project>

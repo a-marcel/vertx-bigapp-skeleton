@@ -1,0 +1,16 @@
+{
+	"main": "com.weeaar.vertxwebconfig.examples.server.ProjectApplication",
+	"options": {
+	    "config" : {
+			"serverService": {
+				"name": "com.weeaar.vertxwebconfig.server.ServerVerticle",				
+				"config": {
+			    	"http.port": 8088,
+			    	"http.host": "localhost"
+				}
+			} 
+	    },
+	    "worker": false,
+	    "isolationGroup": "mygroup"
+	}
+}

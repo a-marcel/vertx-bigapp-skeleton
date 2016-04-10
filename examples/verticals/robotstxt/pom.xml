@@ -1,0 +1,23 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.weeaar.vertxwebconfig.examples</groupId>
+		<artifactId>verticals</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+
+	<groupId>com.weeaar.vertxwebconfig.examples.verticals</groupId>
+	<artifactId>robotstxt</artifactId>
+
+	<properties>
+		<java.version>1.8</java.version>
+		<vertx.version>3.2.1</vertx.version>
+		<timestamp>${maven.build.timestamp}</timestamp>
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+	</properties>
+
+
+	<dependencies>
+	</dependencies>
+</project>

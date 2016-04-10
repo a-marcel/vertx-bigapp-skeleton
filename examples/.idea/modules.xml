@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/examples.iml" filepath="$PROJECT_DIR$/examples.iml" />
+      <module fileurl="file://$PROJECT_DIR$/verticals/health/health.iml" filepath="$PROJECT_DIR$/verticals/health/health.iml" />
+      <module fileurl="file://$PROJECT_DIR$/verticals/javascript/javascript.iml" filepath="$PROJECT_DIR$/verticals/javascript/javascript.iml" />
+      <module fileurl="file://$PROJECT_DIR$/verticals/robotstxt/robotstxt.iml" filepath="$PROJECT_DIR$/verticals/robotstxt/robotstxt.iml" />
+      <module fileurl="file://$PROJECT_DIR$/server/server.iml" filepath="$PROJECT_DIR$/server/server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/verticals/verticals.iml" filepath="$PROJECT_DIR$/verticals/verticals.iml" />
+    </modules>
+  </component>
+</project>

@@ -1,8 +1,12 @@
 package com.weeaar.vertxwebconfig.service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Scanner;
 
@@ -17,47 +21,36 @@ public class ServiceLoader
 
     ServiceVerticleFactory factory;
 
+    public static final String FACTORIES_VERTICLES_LOCATION = "META-INF/vertx.verticle";
+
     public List<String> findVerticles()
     {
         List<String> verticles = new ArrayList<String>();
-
-        InputStream input = null;
         Scanner scan = null;
-        String filename = "META-INF/vertx.verticle";
 
         try
         {
-            input = getClass().getClassLoader().getResourceAsStream( filename );
+            Enumeration<URL> urls = ClassLoader.getSystemResources( FACTORIES_VERTICLES_LOCATION );
 
-            if ( input == null )
+            while ( urls.hasMoreElements() )
             {
-                logger.debug( "Could not found " + filename );
+                URL url = urls.nextElement();
 
-                return null;
+                scan = new Scanner( url.openStream() );
+                while ( scan.hasNextLine() )
+                {
+                    String verticleName = scan.nextLine().trim();
+                    verticles.add( verticleName );
+                    logger.debug( "Found verticle : " + verticleName );
+                }
             }
-
-            scan = new Scanner( input );
-            while ( scan.hasNextLine() )
-            {
-                String verticleName = scan.nextLine().trim();
-                verticles.add( verticleName );
-                logger.debug( "Found verticle : " + verticleName );
-            }
+        }
+        catch ( IOException e )
+        {
+            logger.error( "Error at opening file", e );
         }
         finally
         {
-            if ( input != null )
-            {
-                try
-                {
-                    input.close();
-                }
-                catch ( IOException e )
-                {
-                    logger.error( "Cannot close InputStream", e );
-                }
-            }
-
             if ( scan != null )
             {
                 scan.close();

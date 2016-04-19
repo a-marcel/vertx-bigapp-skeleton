@@ -13,11 +13,12 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Launcher;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public abstract class VertxApplication
+public class VertxApplication
     extends AbstractVerticle
 {
     static Logger logger = LoggerFactory.getLogger( VertxApplication.class );
@@ -39,7 +40,10 @@ public abstract class VertxApplication
         @SuppressWarnings( "rawtypes" )
         List<Future> allVerticalFuture = new ArrayList<Future>();
 
-        List<JsonObject> routes = new ArrayList<JsonObject>();
+        JsonObject portWithRoutes = new JsonObject();
+        portWithRoutes.put( "portWithRoutes", new JsonObject() );
+
+        // List<JsonObject> routes = new ArrayList<JsonObject>();
 
         if ( null != verticals )
         {
@@ -77,7 +81,22 @@ public abstract class VertxApplication
 
                             if ( !route.isEmpty() )
                             {
-                                routes.add( route );
+                                String port = "DEFAULT";
+
+                                if ( !vertxWebConfig.port().isEmpty() )
+                                {
+                                    port = vertxWebConfig.port();
+                                }
+
+                                if ( !portWithRoutes.getJsonObject( "portWithRoutes" ).containsKey( port ) )
+                                {
+
+                                    portWithRoutes.getJsonObject( "portWithRoutes" ).put( port,
+                                                                                          new JsonObject().put( "routes",
+                                                                                                                new JsonArray() ) );
+                                }
+
+                                portWithRoutes.getJsonObject( "portWithRoutes" ).getJsonObject( port ).getJsonArray( "routes" ).add( route );
                             }
                         }
                     }
@@ -102,7 +121,7 @@ public abstract class VertxApplication
                 {
                     logger.info( "All verticals successfull deployed" );
 
-                    startServerVerticle( routes );
+                    startServerVerticle( portWithRoutes );
                 }
                 else
                 {
@@ -112,11 +131,11 @@ public abstract class VertxApplication
         }
         else
         {
-            startServerVerticle( routes );
+            startServerVerticle( portWithRoutes );
         }
     }
 
-    void startServerVerticle( List<JsonObject> routes )
+    void startServerVerticle( JsonObject portWithRoutes )
     {
         if ( config().containsKey( "serverService" ) )
         {
@@ -124,8 +143,9 @@ public abstract class VertxApplication
 
             String serverVerticleName = serverServiceOptions.getString( "name" );
 
-            JsonObject deployConfig = new JsonObject();
-            deployConfig.put( "routes", routes );
+            /*
+             * JsonObject deployConfig = new JsonObject(); deployConfig.put( "routes", portWithRoutes );
+             */
 
             DeploymentOptions options = new DeploymentOptions();
 
@@ -135,10 +155,10 @@ public abstract class VertxApplication
 
                 for ( Map.Entry<String, Object> configObject : serverConfig.getMap().entrySet() )
                 {
-                    deployConfig.put( configObject.getKey(), configObject.getValue() );
+                    portWithRoutes.put( configObject.getKey(), configObject.getValue() );
                 }
 
-                options.setConfig( deployConfig );
+                options.setConfig( portWithRoutes );
             }
 
             vertx.deployVerticle( serverVerticleName, options );

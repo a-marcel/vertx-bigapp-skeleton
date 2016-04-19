@@ -13,5 +13,7 @@ public @interface VertxWebConfig
 
     String path();
 
+    String port() default "";
+
     boolean pathIsRegex() default false;
 }

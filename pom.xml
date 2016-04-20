@@ -6,6 +6,19 @@
 	<artifactId>vertx-web-config</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.vertx</groupId>
+				<artifactId>vertx-dependencies</artifactId>
+				<version>3.2.1</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<properties>
 		<java.version>1.8</java.version>
 		<vertx.version>3.2.1</vertx.version>
@@ -17,44 +30,54 @@
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-core</artifactId>
-			<version>${vertx.version}</version>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-service-factory</artifactId>
-			<version>${vertx.version}</version>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-web</artifactId>
-			<version>${vertx.version}</version>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-rx-java</artifactId>
-			<version>${vertx.version}</version>
+			<optional>true</optional>
 		</dependency>
 
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-codegen</artifactId>
-			<version>${vertx.version}</version>
+			<optional>true</optional>
 		</dependency>
 
-		<!-- <dependency>
-			<groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-shade-plugin</artifactId>
-			<version>2.4.3</version>
-		</dependency>-->
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-docgen</artifactId>
+			<optional>true</optional>
+		</dependency>
+		
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-codetrans</artifactId>
+			<optional>true</optional>
+		</dependency>
 
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-lang-js</artifactId>
+			<optional>true</optional>
+		</dependency>
 	</dependencies>
 
 	<build>
 		<pluginManagement>
-		
 			<plugins>
 				<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
@@ -72,7 +95,6 @@
 							<arg>-AoutputDirectory=${project.basedir}/src/main</arg>
 						</compilerArgs>
 					</configuration>
-					<dependencies></dependencies>
 				</plugin>
 			</plugins>
 		</pluginManagement>

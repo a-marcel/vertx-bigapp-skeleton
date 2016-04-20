@@ -1,9 +1,14 @@
 package com.weeaar.vertxwebconfig.server;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 import com.weeaar.vertxwebconfig.annotation.VertxWebConfig;
 import com.weeaar.vertxwebconfig.service.ServiceLoader;
@@ -13,155 +18,240 @@ import io.vertx.core.CompositeFuture;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Launcher;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class VertxApplication
-    extends AbstractVerticle
-{
-    static Logger logger = LoggerFactory.getLogger( VertxApplication.class );
+public class VertxApplication extends AbstractVerticle {
+	static Logger logger = LoggerFactory.getLogger(VertxApplication.class);
 
-    public static void main( String[] args )
-    {
-        Launcher.main( new String[] { "run", "service:" + VertxApplication.class.getName() } );
-    }
+	public static void main(String[] args) {
+		Launcher.main(new String[] { "run", "service:" + VertxApplication.class.getName() });
+	}
 
-    @Override
-    public void start()
-        throws Exception
-    {
-        logger.debug( "starting" );
+	@Override
+	public void start() throws Exception {
+		logger.debug("starting");
 
-        ServiceLoader serviceLoader = new ServiceLoader();
-        List<String> verticals = serviceLoader.findVerticles();
+		ServiceLoader serviceLoader = new ServiceLoader();
+		List<String> verticals = serviceLoader.findVerticles();
 
-        @SuppressWarnings( "rawtypes" )
-        List<Future> allVerticalFuture = new ArrayList<Future>();
+		@SuppressWarnings("rawtypes")
+		List<Future> allVerticalFuture = new ArrayList<Future>();
 
-        JsonObject portWithRoutes = new JsonObject();
-        portWithRoutes.put( "portWithRoutes", new JsonObject() );
+		JsonObject portWithRoutes = new JsonObject();
+		portWithRoutes.put("portWithRoutes", new JsonObject());
 
-        // List<JsonObject> routes = new ArrayList<JsonObject>();
+		// List<JsonObject> routes = new ArrayList<JsonObject>();
 
-        if ( null != verticals )
-        {
-            for ( String name : verticals )
-            {
-                /*
-                 * Figure out routes
-                 */
-                if ( !name.contains( ".js" ) )
-                {
-                    Method[] methods = Class.forName( name ).getMethods();
-                    for ( Method method : methods )
-                    {
-                        if ( method.isAnnotationPresent( VertxWebConfig.class ) )
-                        {
-                            VertxWebConfig vertxWebConfig = method.getAnnotation( VertxWebConfig.class );
+		if (null != verticals) {
+			for (String name : verticals) {
+				/*
+				 * Figure out routes
+				 */
+				JsonObject verticleConfig = new JsonObject();
+				verticleConfig.put("portWithRoutes", new JsonObject());
 
-                            JsonObject route = new JsonObject();
-                            if ( null != vertxWebConfig.channelName() )
-                            {
-                                route.put( "channelName", vertxWebConfig.channelName() );
-                            }
+				if (!name.endsWith(".js")) {
+					Method[] methods = Class.forName(name).getMethods();
+					for (Method method : methods) {
+						if (method.isAnnotationPresent(VertxWebConfig.class)) {
+							VertxWebConfig vertxWebConfig = method.getAnnotation(VertxWebConfig.class);
 
-                            if ( null != vertxWebConfig.path() )
-                            {
-                                if ( vertxWebConfig.pathIsRegex() )
-                                {
-                                    route.put( "pathRegex", vertxWebConfig.path() );
-                                }
-                                else
-                                {
-                                    route.put( "path", vertxWebConfig.path() );
-                                }
-                            }
+							JsonObject route = new JsonObject();
+							if (null != vertxWebConfig.channelName()) {
+								route.put("channelName", vertxWebConfig.channelName());
+							}
 
-                            if ( !route.isEmpty() )
-                            {
-                                String port = "DEFAULT";
+							if (null != vertxWebConfig.path()) {
+								if (vertxWebConfig.pathIsRegex()) {
+									route.put("pathRegex", vertxWebConfig.path());
+								} else {
+									route.put("path", vertxWebConfig.path());
+								}
+							}
 
-                                if ( !vertxWebConfig.port().isEmpty() )
-                                {
-                                    port = vertxWebConfig.port();
-                                }
+							if (!route.isEmpty()) {
+								String port = "DEFAULT";
 
-                                if ( !portWithRoutes.getJsonObject( "portWithRoutes" ).containsKey( port ) )
-                                {
+								if (!vertxWebConfig.port().isEmpty()) {
+									port = vertxWebConfig.port();
+								}
 
-                                    portWithRoutes.getJsonObject( "portWithRoutes" ).put( port,
-                                                                                          new JsonObject().put( "routes",
-                                                                                                                new JsonArray() ) );
-                                }
+								if (!portWithRoutes.getJsonObject("portWithRoutes").containsKey(port)) {
 
-                                portWithRoutes.getJsonObject( "portWithRoutes" ).getJsonObject( port ).getJsonArray( "routes" ).add( route );
-                            }
-                        }
-                    }
-                }
+									portWithRoutes.getJsonObject("portWithRoutes").put(port,
+											new JsonObject().put("routes", new JsonArray()));
+								}
 
-                /*
-                 * Starting verticle
-                 */
-                Future<String> verticleFuture = Future.future();
+								if (!verticleConfig.getJsonObject("portWithRoutes").containsKey(port)) {
 
-                logger.info( "Deploy verticle " + name );
+									verticleConfig.getJsonObject("portWithRoutes").put(port,
+											new JsonObject().put("routes", new JsonArray()));
+								}
 
-                vertx.deployVerticle( name, verticleFuture.completer() );
-                allVerticalFuture.add( verticleFuture );
-            }
-        }
+								portWithRoutes.getJsonObject("portWithRoutes").getJsonObject(port)
+										.getJsonArray("routes").add(route);
 
-        if ( allVerticalFuture.size() > 0 )
-        {
-            CompositeFuture.all( allVerticalFuture ).setHandler( ar -> {
-                if ( ar.succeeded() )
-                {
-                    logger.info( "All verticals successfull deployed" );
+								verticleConfig.getJsonObject("portWithRoutes").getJsonObject(port)
+										.getJsonArray("routes").add(route);
+							}
+						}
+					}
+				} else if (name.endsWith(".js")) {
+					/*
+					 * For JavaScript, we need a json config file
+					 */
+					/*
+					 * proposal
+					 */
+					/*
+					 * TODO: make it non blocking
+					 */
+					Scanner scan = null;
+					JsonObject configObject = null;
 
-                    startServerVerticle( portWithRoutes );
-                }
-                else
-                {
-                    logger.error( "Deploying verticals failed", ar.cause() );
-                }
-            } );
-        }
-        else
-        {
-            startServerVerticle( portWithRoutes );
-        }
-    }
+					try {
+						String javaScriptConfigFile = name.substring(0, name.length() - 3);
+						Enumeration<URL> urls = ClassLoader
+								.getSystemResources(javaScriptConfigFile.concat(".config.json"));
 
-    void startServerVerticle( JsonObject portWithRoutes )
-    {
-        if ( config().containsKey( "serverService" ) )
-        {
-            JsonObject serverServiceOptions = config().getJsonObject( "serverService" );
+						while (urls.hasMoreElements()) {
+							URL url = urls.nextElement();
 
-            String serverVerticleName = serverServiceOptions.getString( "name" );
+							scan = new Scanner(url.openStream());
+							String configJson = "";
+							while (scan.hasNextLine()) {
+								configJson += scan.nextLine();
+							}
 
-            /*
-             * JsonObject deployConfig = new JsonObject(); deployConfig.put( "routes", portWithRoutes );
-             */
+							configObject = new JsonObject(configJson);
+						}
+					} catch (IOException e) {
+						logger.error("Error at opening file", e);
+					} catch (DecodeException e) {
+						logger.error("Error at decoding file", e);
+					} finally {
+						if (scan != null) {
+							scan.close();
+						}
+					}
 
-            DeploymentOptions options = new DeploymentOptions();
+					if (null != configObject && configObject.containsKey("portWithRoutes")) {
 
-            if ( serverServiceOptions.containsKey( "config" ) )
-            {
-                JsonObject serverConfig = serverServiceOptions.getJsonObject( "config" );
+						for (Map.Entry<String, Object> entry : configObject.getJsonObject("portWithRoutes").getMap()
+								.entrySet()) {
 
-                for ( Map.Entry<String, Object> configObject : serverConfig.getMap().entrySet() )
-                {
-                    portWithRoutes.put( configObject.getKey(), configObject.getValue() );
-                }
+							/*
+							 * There a Problems with the JsonObject.getInstant
+							 * functions
+							 */
+							JsonObject portConfig = null;
+							try {
+								portConfig = configObject.getJsonObject("portWithRoutes").getJsonObject(entry.getKey());
+							} catch (Exception e) {
+								logger.error("Problem with config " + e.getMessage());
+							}
 
-                options.setConfig( portWithRoutes );
-            }
+							if (null != portConfig && portConfig.containsKey("routes")) {
 
-            vertx.deployVerticle( serverVerticleName, options );
-        }
-    }
+								JsonArray routesArray = null;
+								try {
+									routesArray = portConfig.getJsonArray("routes");
+								} catch (Exception e) {
+									logger.error("Problem with config " + e.getMessage());
+								}
+
+								if (null != routesArray) {
+
+									if (!portWithRoutes.getJsonObject("portWithRoutes").containsKey(entry.getKey())) {
+
+										portWithRoutes.getJsonObject("portWithRoutes").put(entry.getKey(),
+												new JsonObject().put("routes", new JsonArray()));
+									}
+
+									if (!verticleConfig.getJsonObject("portWithRoutes").containsKey(entry.getKey())) {
+
+										verticleConfig.getJsonObject("portWithRoutes").put(entry.getKey(),
+												new JsonObject().put("routes", new JsonArray()));
+									}
+
+									if (null != routesArray && routesArray.size() > 0) {
+										for (Object object : routesArray) {
+											if (object instanceof JsonObject) {
+
+												portWithRoutes.getJsonObject("portWithRoutes")
+														.getJsonObject(entry.getKey()).getJsonArray("routes")
+														.add((JsonObject) object);
+
+												verticleConfig.getJsonObject("portWithRoutes")
+														.getJsonObject(entry.getKey()).getJsonArray("routes")
+														.add((JsonObject) object);
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+
+				/*
+				 * Starting verticle
+				 */
+				Future<String> verticleFuture = Future.future();
+
+				logger.info("Deploy verticle " + name);
+
+				DeploymentOptions options = new DeploymentOptions();
+				options.setConfig(verticleConfig);
+
+				vertx.deployVerticle(name, options, verticleFuture.completer());
+				allVerticalFuture.add(verticleFuture);
+			}
+		}
+
+		if (allVerticalFuture.size() > 0) {
+			CompositeFuture.all(allVerticalFuture).setHandler(ar -> {
+				if (ar.succeeded()) {
+					logger.info("All verticals successfull deployed");
+
+					startServerVerticle(portWithRoutes);
+				} else {
+					logger.error("Deploying verticals failed", ar.cause());
+				}
+			});
+		} else {
+			startServerVerticle(portWithRoutes);
+		}
+	}
+
+	void startServerVerticle(JsonObject portWithRoutes) {
+		if (config().containsKey("serverService")) {
+			JsonObject serverServiceOptions = config().getJsonObject("serverService");
+
+			String serverVerticleName = serverServiceOptions.getString("name");
+
+			/*
+			 * JsonObject deployConfig = new JsonObject(); deployConfig.put(
+			 * "routes", portWithRoutes );
+			 */
+
+			DeploymentOptions options = new DeploymentOptions();
+
+			if (serverServiceOptions.containsKey("config")) {
+				JsonObject serverConfig = serverServiceOptions.getJsonObject("config");
+
+				for (Map.Entry<String, Object> configObject : serverConfig.getMap().entrySet()) {
+					portWithRoutes.put(configObject.getKey(), configObject.getValue());
+				}
+
+				options.setConfig(portWithRoutes);
+			}
+
+			vertx.deployVerticle(serverVerticleName, options);
+		}
+	}
 }

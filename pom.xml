@@ -42,13 +42,11 @@
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-web</artifactId>
-			<optional>true</optional>
 		</dependency>
 
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-rx-java</artifactId>
-			<optional>true</optional>
 		</dependency>
 
 		<dependency>
@@ -63,11 +61,11 @@
 			<optional>true</optional>
 		</dependency>
 		
-		<dependency>
+<!--		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-codetrans</artifactId>
 			<optional>true</optional>
-		</dependency>
+		</dependency>-->
 
 		<dependency>
 			<groupId>io.vertx</groupId>

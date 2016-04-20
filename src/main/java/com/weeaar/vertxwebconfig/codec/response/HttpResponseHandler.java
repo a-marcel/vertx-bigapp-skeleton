@@ -10,67 +10,85 @@ import io.vertx.core.Handler;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public class HttpResponseHandler implements Handler< AsyncResult< Message< HttpResponse > > > {
-	final HttpServerResponse response;
+public class HttpResponseHandler implements Handler<AsyncResult<Message<Object>>> {
+    final HttpServerResponse response;
 
-	Logger logger = LoggerFactory.getLogger(RouterHandler.class);
+    Logger logger = LoggerFactory.getLogger(RouterHandler.class);
 
-	public HttpResponseHandler(HttpServerResponse response) {
-		this.response = response;
-	}
+    JsonObject defaultHeader;
 
-	@Override
-	public void handle(AsyncResult< Message< HttpResponse > > reply) {
-		Message< HttpResponse > message = reply.result();
+    public HttpResponseHandler(HttpServerResponse response, JsonObject defaultHeader) {
+	this.response = response;
+	this.defaultHeader = defaultHeader;
+    }
 
-		try {
-			if (null == message) {
-				throw new Exception("Not a valid message");
-			}
+    @Override
+    public void handle(AsyncResult<Message<Object>> reply) {
+	Message<Object> message = reply.result();
 
-			HttpResponse returnResponse = message.body();
+	try {
+	    if (null == message) {
+		throw new Exception("Not a valid message");
+	    }
 
-			if (null != returnResponse) {
+	    HttpResponse returnResponse = null;
 
-				if (null != returnResponse.getStatusCode()) {
-					response.setStatusCode(returnResponse.getStatusCode());
-				}
+	    if (message.body() instanceof JsonObject) {
+		returnResponse = new HttpResponse((JsonObject) message.body());
+	    } else {
+		returnResponse = (HttpResponse) message.body();
+	    }
 
-				if (null != returnResponse.headers()) {
-					for (Map.Entry< String, Object > header : returnResponse.headers()) {
-						if (header.getValue() instanceof String) {
-							response.headers().add(header.getKey(), header.getValue().toString());
-						}
-					}
-				}
+	    if (null != returnResponse) {
 
-				if (null != returnResponse.trailers()) {
-					for (Map.Entry< String, Object > trailer : returnResponse.trailers()) {
-						if (trailer.getValue() instanceof String) {
-							response.trailers().add(trailer.getKey(), trailer.getValue().toString());
-						}
-					}
-				}
-
-				if (null != returnResponse.getBody()) {
-					response.end(returnResponse.getBody());
-				}
-
-				if (null == returnResponse.headers() && null == returnResponse.trailers()
-						&& null == returnResponse.getBody() && null == returnResponse.getStatusCode()) {
-					response.setStatusCode(HttpResponseStatus.NO_CONTENT.code());
-				}
-			}
-		} catch (Exception e) {
-			logger.warn(String.format("Wrong response type: %s", e.getMessage()), e);
-			response.setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
-		} finally {
-			if (!response.ended()) {
-				response.end();
-			}
+		if (null != returnResponse.getStatusCode()) {
+		    response.setStatusCode(returnResponse.getStatusCode());
 		}
+
+		if (null != returnResponse.headers()) {
+		    for (Map.Entry<String, Object> header : returnResponse.headers()) {
+			if (header.getValue() instanceof String) {
+			    response.headers().add(header.getKey(), header.getValue().toString());
+			}
+		    }
+		}
+
+		if (null != returnResponse.trailers()) {
+		    for (Map.Entry<String, Object> trailer : returnResponse.trailers()) {
+			if (trailer.getValue() instanceof String) {
+			    response.trailers().add(trailer.getKey(), trailer.getValue().toString());
+			}
+		    }
+		}
+
+		if (null != defaultHeader) {
+		    for (Map.Entry<String, Object> entry : defaultHeader.getMap().entrySet()) {
+			if (!response.headers().contains(entry.getKey())) {
+			    response.headers().add(entry.getKey(), entry.getValue().toString());
+			}
+		    }
+		}
+
+		if (null != returnResponse.getBody()) {
+		    response.end(returnResponse.getBody());
+		}
+
+		if (null == returnResponse.headers() && null == returnResponse.trailers()
+			&& null == returnResponse.getBody() && null == returnResponse.getStatusCode()) {
+		    response.setStatusCode(HttpResponseStatus.NO_CONTENT.code());
+		}
+	    }
+	} catch (Exception e) {
+	    logger.warn(String.format("Wrong response type: %s", e.getMessage()), e);
+	    response.setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
+	} finally {
+	    if (!response.ended()) {
+		response.end();
+	    }
 	}
+    }
 }

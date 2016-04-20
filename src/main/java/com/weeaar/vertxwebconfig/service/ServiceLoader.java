@@ -14,6 +14,10 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.service.ServiceVerticleFactory;
 
+
+/*
+ * TODO: make it non blocking
+ */
 public class ServiceLoader
 {
 

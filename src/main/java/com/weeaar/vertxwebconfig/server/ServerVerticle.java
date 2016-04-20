@@ -152,9 +152,16 @@ public class ServerVerticle extends AbstractVerticle {
     }
 
     void parseRouteConfig(JsonArray routes, Router router, String hostInfo) {
+	JsonObject defaultRoute = null;
+
 	for (Object object : routes) {
 	    if (object instanceof JsonObject) {
 		JsonObject route = (JsonObject) object;
+
+		if (route.containsKey("path") && route.getString("path").equals("/")) {
+		    defaultRoute = route;
+		    continue;
+		}
 
 		if (route.containsKey("path") && route.containsKey("channelName")) {
 		    logger.info("Binding url " + route.getString("path") + " -> " + hostInfo);
@@ -168,6 +175,24 @@ public class ServerVerticle extends AbstractVerticle {
 		} else {
 		    logger.error("Cannot bind route because path or channelName is missing");
 		}
+	    }
+	}
+	/*
+	 * Its important to bind the handling for / in the end
+	 */
+
+	if (null != defaultRoute) {
+	    if (defaultRoute.containsKey("path") && defaultRoute.containsKey("channelName")) {
+		logger.info("Binding url " + defaultRoute.getString("path") + " -> " + hostInfo);
+		router.route(defaultRoute.getString("path"))
+			.handler(new RouterHandler(defaultRoute.getString("channelName"), defaultHeader));
+	    } else if (defaultRoute.containsKey("pathRegex") && defaultRoute.containsKey("channelName")) {
+		logger.info("Binding url " + defaultRoute.getString("path"));
+
+		router.route().pathRegex(defaultRoute.getString("pathRegex"))
+			.handler(new RouterHandler(defaultRoute.getString("channelName"), defaultHeader));
+	    } else {
+		logger.error("Cannot bind route because path or channelName is missing");
 	    }
 	}
     }

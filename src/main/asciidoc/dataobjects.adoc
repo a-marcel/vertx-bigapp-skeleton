@@ -1,23 +1,5 @@
 = Cheatsheets
 
-[[HttpResponse]]
-== HttpResponse
-
-
-[cols=">25%,^25%,50%"]
-[frame="topbot"]
-|===
-^|Name | Type ^| Description
-|[[body]]`body`|`String`|-
-|[[statusCode]]`statusCode`|`Number (Integer)`|-
-|[[statusMessage]]`statusMessage`|`String`|
-+++
-@return the HTTP status message of the response. If this is not specified
-         a default value will be used depending
-         on what link has been set to.
-+++
-|===
-
 [[HttpRequest]]
 == HttpRequest
 
@@ -28,11 +10,13 @@
 ^|Name | Type ^| Description
 |[[ended]]`ended`|`Boolean`|
 +++
-Has the request ended? I.e. has the entire request, including the body been read?
+Has the request ended? I.e. has the entire request, including the body
+ been read?
 +++
 |[[ssl]]`ssl`|`Boolean`|
 +++
-@return true if this link is encrypted via SSL/TLS
+@return true if this link is encrypted via
+         SSL/TLS
 +++
 |===
 

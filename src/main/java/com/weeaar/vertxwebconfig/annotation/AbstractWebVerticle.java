@@ -11,58 +11,53 @@ import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-public abstract class AbstractWebVerticle
-    extends AbstractVerticle
-{
-    Logger logger = LoggerFactory.getLogger( getClass() );
+public abstract class AbstractWebVerticle extends AbstractVerticle {
+    Logger logger = LoggerFactory.getLogger(getClass());
+
+    public void prepare(Future<Void> fut) {
+	fut.complete();
+    }
 
     @Override
-    public void start( Future<Void> fut )
-        throws Exception
-    {
-        Method[] methods = this.getClass().getMethods();
+    public void start(Future<Void> fut) throws Exception {
+	Method[] methods = this.getClass().getMethods();
 
-        @SuppressWarnings( "rawtypes" )
-        List<Future> eventBusConsumer = new ArrayList<Future>();
+	@SuppressWarnings("rawtypes")
+	List<Future> eventBusConsumer = new ArrayList<Future>();
 
-        for ( Method method : methods )
-        {
-            if ( method.isAnnotationPresent( VertxWebConfig.class ) )
-            {
-                VertxWebConfig vertxWebConfig = method.getAnnotation( VertxWebConfig.class );
+	Future<Void> initFuture = Future.future();
+	this.prepare(initFuture);
+	eventBusConsumer.add(initFuture);
 
-                Future<Void> consumerFuture = Future.future();
+	for (Method method : methods) {
+	    if (method.isAnnotationPresent(VertxWebConfig.class)) {
+		VertxWebConfig vertxWebConfig = method.getAnnotation(VertxWebConfig.class);
 
-                MessageConsumer<Object> consumer = vertx.eventBus().consumer( vertxWebConfig.channelName(), message -> {
-                    try
-                    {
-                        method.invoke( this, message );
-                    }
-                    catch ( Exception e )
-                    {
-                        logger.error( "Cannot call method " + method.getName(), e );
-                    }
-                } );
+		Future<Void> consumerFuture = Future.future();
 
-                consumer.completionHandler( consumerFuture.completer() );
+		MessageConsumer<Object> consumer = vertx.eventBus().consumer(vertxWebConfig.channelName(), message -> {
+		    try {
+			method.invoke(this, message);
+		    } catch (Exception e) {
+			logger.error("Cannot call method " + method.getName(), e);
+		    }
+		});
 
-                eventBusConsumer.add( consumerFuture );
-            }
-        }
+		consumer.completionHandler(consumerFuture.completer());
 
-        if ( null != eventBusConsumer && eventBusConsumer.size() > 0 )
-        {
-            CompositeFuture.all( eventBusConsumer ).setHandler( all -> {
-                if ( all.succeeded() )
-                {
-                    fut.complete();
-                }
-                else
-                {
-                    logger.error( "Error in evenbus deploy ", all.cause() );
-                    fut.fail( all.cause() );
-                }
-            } );
-        }
+		eventBusConsumer.add(consumerFuture);
+	    }
+	}
+
+	if (null != eventBusConsumer && eventBusConsumer.size() > 0) {
+	    CompositeFuture.all(eventBusConsumer).setHandler(all -> {
+		if (all.succeeded()) {
+		    fut.complete();
+		} else {
+		    logger.error("Error in evenbus deploy ", all.cause());
+		    fut.fail(all.cause());
+		}
+	    });
+	}
     }
 }

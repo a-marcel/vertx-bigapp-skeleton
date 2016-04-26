@@ -41,18 +41,13 @@ public class VertxApplication extends AbstractVerticle {
 	@SuppressWarnings("rawtypes")
 	List<Future> allVerticalFuture = new ArrayList<Future>();
 
-	JsonObject portWithRoutes = new JsonObject();
-	portWithRoutes.put("portWithRoutes", new JsonObject());
-
-	// List<JsonObject> routes = new ArrayList<JsonObject>();
+	Config configs = new Config(config());
 
 	if (null != verticals) {
 	    for (String name : verticals) {
 		/*
 		 * Figure out routes
 		 */
-		JsonObject verticleConfig = new JsonObject();
-		verticleConfig.put("portWithRoutes", new JsonObject());
 
 		if (!name.endsWith(".js")) {
 		    Method[] methods = Class.forName(name).getMethods();
@@ -60,44 +55,7 @@ public class VertxApplication extends AbstractVerticle {
 			if (method.isAnnotationPresent(VertxWebConfig.class)) {
 			    VertxWebConfig vertxWebConfig = method.getAnnotation(VertxWebConfig.class);
 
-			    JsonObject route = new JsonObject();
-			    if (null != vertxWebConfig.channelName()) {
-				route.put("channelName", vertxWebConfig.channelName());
-			    }
-
-			    if (null != vertxWebConfig.path()) {
-				if (vertxWebConfig.pathIsRegex()) {
-				    route.put("pathRegex", vertxWebConfig.path());
-				} else {
-				    route.put("path", vertxWebConfig.path());
-				}
-			    }
-
-			    if (!route.isEmpty()) {
-				String port = "DEFAULT";
-
-				if (!vertxWebConfig.port().isEmpty()) {
-				    port = vertxWebConfig.port();
-				}
-
-				if (!portWithRoutes.getJsonObject("portWithRoutes").containsKey(port)) {
-
-				    portWithRoutes.getJsonObject("portWithRoutes").put(port,
-					    new JsonObject().put("routes", new JsonArray()));
-				}
-
-				if (!verticleConfig.getJsonObject("portWithRoutes").containsKey(port)) {
-
-				    verticleConfig.getJsonObject("portWithRoutes").put(port,
-					    new JsonObject().put("routes", new JsonArray()));
-				}
-
-				portWithRoutes.getJsonObject("portWithRoutes").getJsonObject(port)
-					.getJsonArray("routes").add(route);
-
-				verticleConfig.getJsonObject("portWithRoutes").getJsonObject(port)
-					.getJsonArray("routes").add(route);
-			    }
+			    configs.addConfigFromAnnotation(vertxWebConfig);
 			}
 		    }
 		} else if (name.endsWith(".js")) {
@@ -139,63 +97,7 @@ public class VertxApplication extends AbstractVerticle {
 			}
 		    }
 
-		    if (null != configObject && configObject.containsKey("portWithRoutes")) {
-
-			for (Map.Entry<String, Object> entry : configObject.getJsonObject("portWithRoutes").getMap()
-				.entrySet()) {
-
-			    /*
-			     * There a Problems with the JsonObject.getInstant
-			     * functions
-			     */
-			    JsonObject portConfig = null;
-			    try {
-				portConfig = configObject.getJsonObject("portWithRoutes").getJsonObject(entry.getKey());
-			    } catch (Exception e) {
-				logger.error("Problem with config " + e.getMessage());
-			    }
-
-			    if (null != portConfig && portConfig.containsKey("routes")) {
-
-				JsonArray routesArray = null;
-				try {
-				    routesArray = portConfig.getJsonArray("routes");
-				} catch (Exception e) {
-				    logger.error("Problem with config " + e.getMessage());
-				}
-
-				if (null != routesArray) {
-
-				    if (!portWithRoutes.getJsonObject("portWithRoutes").containsKey(entry.getKey())) {
-
-					portWithRoutes.getJsonObject("portWithRoutes").put(entry.getKey(),
-						new JsonObject().put("routes", new JsonArray()));
-				    }
-
-				    if (!verticleConfig.getJsonObject("portWithRoutes").containsKey(entry.getKey())) {
-
-					verticleConfig.getJsonObject("portWithRoutes").put(entry.getKey(),
-						new JsonObject().put("routes", new JsonArray()));
-				    }
-
-				    if (null != routesArray && routesArray.size() > 0) {
-					for (Object object : routesArray) {
-					    if (object instanceof JsonObject) {
-
-						portWithRoutes.getJsonObject("portWithRoutes")
-							.getJsonObject(entry.getKey()).getJsonArray("routes")
-							.add((JsonObject) object);
-
-						verticleConfig.getJsonObject("portWithRoutes")
-							.getJsonObject(entry.getKey()).getJsonArray("routes")
-							.add((JsonObject) object);
-					    }
-					}
-				    }
-				}
-			    }
-			}
-		    }
+		    configs.addConfigFromJsonObject(configObject);
 		}
 
 		/*
@@ -206,7 +108,7 @@ public class VertxApplication extends AbstractVerticle {
 		logger.info("Deploy verticle " + name);
 
 		DeploymentOptions options = new DeploymentOptions();
-		options.setConfig(verticleConfig);
+		options.setConfig(configs);
 
 		vertx.deployVerticle(name, options, verticleFuture.completer());
 		allVerticalFuture.add(verticleFuture);
@@ -218,55 +120,25 @@ public class VertxApplication extends AbstractVerticle {
 		if (ar.succeeded()) {
 		    logger.info("All verticals successfull deployed");
 
-		    startServerVerticle(portWithRoutes);
+		    startServerVerticle(configs);
 		} else {
 		    logger.error("Deploying verticals failed", ar.cause());
 		}
 	    });
 	} else {
-	    startServerVerticle(portWithRoutes);
+	    startServerVerticle(configs);
 	}
     }
 
-    void startServerVerticle(JsonObject portWithRoutes) {
-	if (config().containsKey("serverService")) {
+    void startServerVerticle(Config config) {
+	if (null != config.getServerConfig()) {
 
-	    JsonObject serverServiceOptions = config().getJsonObject("serverService");
-
-	    String serverVerticleName = serverServiceOptions.getString("name");
+	    ServerConfig serverConfig = config.getServerConfig();
 
 	    DeploymentOptions options = new DeploymentOptions();
+	    options.setConfig(config);
 
-	    if (serverServiceOptions.containsKey("config")) {
-		JsonObject serverConfig = serverServiceOptions.getJsonObject("config");
-
-		for (Map.Entry<String, Object> configObject : serverConfig.getMap().entrySet()) {
-		    portWithRoutes.put(configObject.getKey(), configObject.getValue());
-		}
-
-		options.setConfig(portWithRoutes);
-	    }
-
-	    /*
-	     * TODO: Better solution for config pass thru
-	     */
-
-	    if (config().containsKey("contentType")) {
-		if (null == options.getConfig()) {
-		    options.setConfig(new JsonObject());
-		}
-
-		options.getConfig().put("contentType", config().getString("contentType"));
-	    }
-
-	    if (config().containsKey("webRouterHookClass")) {
-		if (null == options.getConfig()) {
-		    options.setConfig(new JsonObject());
-		}
-		options.getConfig().put("webRouterHookClass", config().getString("webRouterHookClass"));
-	    }
-
-	    vertx.deployVerticle(serverVerticleName, options);
+	    vertx.deployVerticle(serverConfig.getClassName(), options);
 	}
     }
 }

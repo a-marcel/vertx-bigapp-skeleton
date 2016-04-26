@@ -14,6 +14,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -30,8 +31,6 @@ public class ServerVerticle extends AbstractVerticle {
 
     WebRouterHook webRouterHook = null;
 
-    JsonObject defaultHeader = new JsonObject();
-
     @Override
     public void start(Future<Void> fut) throws Exception {
 	super.start();
@@ -39,42 +38,29 @@ public class ServerVerticle extends AbstractVerticle {
 	vertx.eventBus().registerDefaultCodec(HttpRequest.class, new HttpRequestCodec());
 	vertx.eventBus().registerDefaultCodec(HttpResponse.class, new HttpResponseCodec());
 
-	if (config().containsKey("webRouterHookClass")) {
-	    initWebRouterHook(config().getString("webRouterHookClass"));
+	Config config = new Config(config());
+
+	if (null != config.getWebRouterHookClass()) {
+	    initWebRouterHook(config.getWebRouterHookClass());
 	}
 
-	if (config().containsKey("contentType")) {
-	    defaultHeader.put(HttpHeaders.CONTENT_TYPE.toString(), config().getString("contentType"));
-	}
+	ServerConfig serverConfig = config.getServerConfig();
 
 	@SuppressWarnings("rawtypes")
 	List<Future> allServerFuture = new ArrayList<Future>();
 
-	Integer port = config().getInteger("http.port", 8081);
-	String host = config().getString("http.host", "localhost");
+	Integer port = serverConfig.getPort();
+	String host = serverConfig.getHost();
 
-	JsonObject portConfig = config();
+	if (config.isValid()) {
+	    logger.debug("Starting with Config: " + config);
 
-	if (portConfig.containsKey("portWithRoutes")) {
-	    logger.debug("Starting with Config: " + portConfig.getJsonObject("portWithRoutes"));
-
-	    for (Map.Entry<String, Object> entry : portConfig.getJsonObject("portWithRoutes").getMap().entrySet()) {
+	    for (Map.Entry<Integer, List<Route>> routes : config.getRoutesConfig().entrySet()) {
 		Future<Void> serverFuture = Future.future();
 
-		if (entry.getValue() instanceof JsonObject) {
-		    JsonObject config = (JsonObject) entry.getValue();
-
-		    if (entry.getKey().equals("DEFAULT")) {
-			startServerOnPort(port, host, config, serverFuture);
-		    } else {
-			Integer newPort = Integer.valueOf(entry.getKey());
-			startServerOnPort(newPort, host, config, serverFuture);
-		    }
-		} else {
-		    logger.error("Configuration is wrong");
-		}
-
+		startServerOnPort(routes.getKey(), host, routes.getValue(), serverFuture);
 		allServerFuture.add(serverFuture);
+
 	    }
 	} else {
 	    logger.error("Wrong Configuration");
@@ -113,16 +99,14 @@ public class ServerVerticle extends AbstractVerticle {
 	}
     }
 
-    void startServerOnPort(Integer port, String host, JsonObject config, Future<Void> fut) {
+    void startServerOnPort(Integer port, String host, List<Route> routes, Future<Void> fut) {
 	HttpServer server = vertx.createHttpServer();
 
 	Router router = Router.router(vertx);
 
 	callRouterWebHook(ROUTER_WEBHOOK_BEFORE, port, router);
 
-	if (config.containsKey("routes")) {
-	    parseRouteConfig(config.getJsonArray("routes"), router, host.concat(":").concat(port.toString()));
-	}
+	bindRoutes(routes, router, host.concat(":").concat(port.toString()));
 
 	callRouterWebHook(ROUTER_WEBHOOK_AFTER, port, router);
 
@@ -151,49 +135,44 @@ public class ServerVerticle extends AbstractVerticle {
 	}
     }
 
-    void parseRouteConfig(JsonArray routes, Router router, String hostInfo) {
-	JsonObject defaultRoute = null;
+    void bindRoutes(List<Route> routes, Router router, String hostInfo) {
+	Route defaultRoute = null;
 
-	for (Object object : routes) {
-	    if (object instanceof JsonObject) {
-		JsonObject route = (JsonObject) object;
+	for (Route route : routes) {
 
-		if (route.containsKey("path") && route.getString("path").equals("/")) {
-		    defaultRoute = route;
-		    continue;
-		}
-
-		if (route.containsKey("path") && route.containsKey("channelName")) {
-		    logger.info("Binding url " + route.getString("path") + " -> " + hostInfo);
-		    router.route(route.getString("path"))
-			    .handler(new RouterHandler(route.getString("channelName"), defaultHeader));
-		} else if (route.containsKey("pathRegex") && route.containsKey("channelName")) {
-		    logger.info("Binding url " + route.getString("path"));
-
-		    router.route().pathRegex(route.getString("pathRegex"))
-			    .handler(new RouterHandler(route.getString("channelName"), defaultHeader));
-		} else {
-		    logger.error("Cannot bind route because path or channelName is missing");
-		}
+	    if (null != route.getPath() && route.getPath().equals("/")) {
+		defaultRoute = route;
 	    }
+
+	    addRouteToRouter(router, route, hostInfo);
 	}
 	/*
 	 * Its important to bind the handling for / in the end
 	 */
-
 	if (null != defaultRoute) {
-	    if (defaultRoute.containsKey("path") && defaultRoute.containsKey("channelName")) {
-		logger.info("Binding url " + defaultRoute.getString("path") + " -> " + hostInfo);
-		router.route(defaultRoute.getString("path"))
-			.handler(new RouterHandler(defaultRoute.getString("channelName"), defaultHeader));
-	    } else if (defaultRoute.containsKey("pathRegex") && defaultRoute.containsKey("channelName")) {
-		logger.info("Binding url " + defaultRoute.getString("path"));
-
-		router.route().pathRegex(defaultRoute.getString("pathRegex"))
-			.handler(new RouterHandler(defaultRoute.getString("channelName"), defaultHeader));
-	    } else {
-		logger.error("Cannot bind route because path or channelName is missing");
-	    }
+	    addRouteToRouter(router, defaultRoute, hostInfo);
 	}
+    }
+
+    void addRouteToRouter(Router router, Route route, String hostInfo) {
+	if (null != route.getPath() && null != route.getChannelName()) {
+	    logger.info("Binding url " + route.getPath()
+		    + (null != route.getMethod() ? " " + route.getMethod() + " " : "") + " -> " + hostInfo);
+	    io.vertx.ext.web.Route vertxRoute = null;
+
+	    if (!route.isRegex()) {
+		vertxRoute = router.route(route.getPath());
+	    } else {
+		vertxRoute = router.route().pathRegex(route.getPath());
+	    }
+
+	    if (null != route.getMethod()) {
+		vertxRoute.method(HttpMethod.valueOf(route.getMethod()));
+	    }
+	    vertxRoute.handler(new RouterHandler(route.getChannelName(), null));
+	} else {
+	    logger.error("Cannot bind route because path or channelName is missing");
+	}
+
     }
 }

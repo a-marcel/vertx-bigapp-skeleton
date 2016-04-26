@@ -2,9 +2,12 @@ package com.weeaar.vertxwebconfig.server;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.mvel2.util.ArrayTools;
 
 import com.weeaar.vertxwebconfig.annotation.VertxWebConfig;
 
@@ -58,11 +61,11 @@ public class Config extends JsonObject {
 	    route.setChannelName(config.channelName());
 	}
 
-	if (null != config.path() && !config.path().isEmpty()) {
+	if (null != config.path() && config.path().length > 0) {
 	    if (config.pathIsRegex()) {
-		route.put("pathRegex", config.path());
+		route.put("pathRegex", Arrays.asList(config.path()));
 	    } else {
-		route.put("path", config.path());
+		route.put("path", Arrays.asList(config.path()));
 	    }
 	}
 

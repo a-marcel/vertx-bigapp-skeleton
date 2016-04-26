@@ -156,20 +156,23 @@ public class ServerVerticle extends AbstractVerticle {
 
     void addRouteToRouter(Router router, Route route, String hostInfo) {
 	if (null != route.getPath() && null != route.getChannelName()) {
-	    logger.info("Binding url " + route.getPath()
-		    + (null != route.getMethod() ? " " + route.getMethod() + " " : "") + " -> " + hostInfo);
-	    io.vertx.ext.web.Route vertxRoute = null;
+	    for (String path : route.getPath()) {
 
-	    if (!route.isRegex()) {
-		vertxRoute = router.route(route.getPath());
-	    } else {
-		vertxRoute = router.route().pathRegex(route.getPath());
-	    }
+		logger.info("Binding url " + path + (null != route.getMethod() ? " " + route.getMethod() + " " : "")
+			+ " -> " + hostInfo);
+		io.vertx.ext.web.Route vertxRoute = null;
 
-	    if (null != route.getMethod()) {
-		vertxRoute.method(HttpMethod.valueOf(route.getMethod()));
+		if (!route.isRegex()) {
+		    vertxRoute = router.route(path);
+		} else {
+		    vertxRoute = router.route().pathRegex(path);
+		}
+
+		if (null != route.getMethod()) {
+		    vertxRoute.method(HttpMethod.valueOf(route.getMethod()));
+		}
+		vertxRoute.handler(new RouterHandler(route.getChannelName(), null));
 	    }
-	    vertxRoute.handler(new RouterHandler(route.getChannelName(), null));
 	} else {
 	    logger.error("Cannot bind route because path or channelName is missing");
 	}

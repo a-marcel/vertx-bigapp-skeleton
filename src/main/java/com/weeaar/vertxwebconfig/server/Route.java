@@ -1,5 +1,9 @@
 package com.weeaar.vertxwebconfig.server;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 public class Route extends JsonObject {
@@ -10,7 +14,15 @@ public class Route extends JsonObject {
 	}
 
 	if (route.containsKey("path")) {
-	    this.setPath(route.getString("path"));
+	    if (route.getValue("path") instanceof String[] || route.getValue("path") instanceof JsonArray) {
+		this.setPath(route.getJsonArray("path").getList());
+	    } else {
+		this.setPath(new ArrayList<String>() {
+		    {
+			add(route.getString("path"));
+		    }
+		});
+	    }
 	}
 
 	if (route.containsKey("isRegex")) {
@@ -37,13 +49,13 @@ public class Route extends JsonObject {
 	return null;
     }
 
-    public void setPath(String path) {
+    public void setPath(List<String> path) {
 	this.put("path", path);
     }
 
-    public String getPath() {
+    public List<String> getPath() {
 	if (this.containsKey("path")) {
-	    return this.getString("path");
+	    return this.getJsonArray("path").getList();
 	}
 	return null;
     }

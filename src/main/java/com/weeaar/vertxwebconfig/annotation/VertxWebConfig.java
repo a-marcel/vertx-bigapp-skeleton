@@ -10,7 +10,7 @@ import java.lang.annotation.RetentionPolicy;
 public @interface VertxWebConfig {
     String channelName();
 
-    String path();
+    String[] path();
 
     String port() default "";
 

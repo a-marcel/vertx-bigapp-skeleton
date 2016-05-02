@@ -1,28 +1,20 @@
 package com.weeaar.vertxwebconfig.codec.request;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.security.cert.X509Certificate;
-
-import io.vertx.codegen.annotations.CacheReturn;
 import io.vertx.codegen.annotations.DataObject;
-import io.vertx.codegen.annotations.Fluent;
-import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.annotations.Nullable;
-import io.vertx.codegen.annotations.VertxGen;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerFileUpload;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.http.HttpVersion;
-import io.vertx.core.http.ServerWebSocket;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.net.NetSocket;
-import io.vertx.core.net.SocketAddress;
+import io.vertx.ext.web.RoutingContext;
 
 @DataObject(generateConverter = true)
 public class HttpRequest {
@@ -40,8 +32,12 @@ public class HttpRequest {
 	this.json = json.copy();
     }
 
-    public HttpRequest(HttpServerRequest request) {
+    public HttpRequest(RoutingContext context) {
+
+	HttpServerRequest request = context.request();
+
 	json = new JsonObject();
+
 	json.put("version", request.version().name());
 	json.put("method", request.method().toString());
 	json.put("path", request.path());
@@ -79,6 +75,21 @@ public class HttpRequest {
 
 	    json.put("headers", headers);
 	}
+
+	JsonObject body = null;
+	try {
+	    body = context.getBodyAsJson();
+	    json.put("body", context.getBodyAsString());
+	} catch (DecodeException e) {
+	}
+
+	if (context.cookies().size() > 0) {
+	    JsonArray cookiesArray = new JsonArray(new ArrayList<String>(
+		    Arrays.asList(context.cookies().toArray(new String[context.cookies().size()]))));
+	    json.put("cookies", cookiesArray);
+	}
+
+	context.cookies();
 
     }
 
@@ -241,4 +252,11 @@ public class HttpRequest {
 	return json.getBoolean("ssl", false);
     }
 
+    public JsonArray getCookies() {
+	return json.getJsonArray("cookies", null);
+    }
+
+    public String getBodyString() {
+	return json.getString("body", null);
+    }
 }

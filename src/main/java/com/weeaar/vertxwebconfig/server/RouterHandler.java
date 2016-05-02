@@ -13,7 +13,7 @@ public class RouterHandler implements Handler<RoutingContext> {
     Logger logger = LoggerFactory.getLogger(RouterHandler.class);
 
     private final String channelName;
-    
+
     private JsonObject defaultHeader;
 
     public RouterHandler(String channelName, JsonObject defaultHeader) {
@@ -23,7 +23,7 @@ public class RouterHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext context) {
-	context.vertx().eventBus().send(channelName, new HttpRequest(context.request()),
+	context.vertx().eventBus().send(channelName, new HttpRequest(context),
 		new HttpResponseHandler(context.response(), this.defaultHeader));
     }
 }

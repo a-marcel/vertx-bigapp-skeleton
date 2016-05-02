@@ -75,15 +75,19 @@ public class HttpResponse {
 	return json.getString("statusMessage", null);
     }
 
-    public void setStatusCode(Integer statusCode) {
+    public HttpResponse setStatusCode(Integer statusCode) {
 	json.put("statusCode", statusCode);
+
+	return this;
     }
 
-    public void addHeader(String name, String value) {
+    public HttpResponse addHeader(String name, String value) {
 	if (!json.containsKey("headers")) {
 	    json.put("headers", new JsonObject());
 	}
 	json.getJsonObject("headers").put(name, value);
+
+	return this;
     }
 
     /**
@@ -100,16 +104,19 @@ public class HttpResponse {
 	return json.getJsonObject("trailers", null);
     }
 
-    public void setBody(String body) {
+    public HttpResponse setBody(String body) {
 	json.put("body", body);
+	return this;
     }
 
-    public void setBody(JsonObject body) {
+    public HttpResponse setBody(JsonObject body) {
 	json.put("body", body);
+	return this;
     }
 
-    public void setBody(JsonArray body) {
+    public HttpResponse setBody(JsonArray body) {
 	json.put("body", body);
+	return this;
     }
 
     public String getBody() {

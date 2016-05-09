@@ -17,7 +17,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-@DataObject(generateConverter = true)
+//@DataObject(generateConverter = true)
 public class HttpResponse {
     private JsonObject json; // Keep a copy of the original json, so we don't
 			     // lose info when building options subclasses

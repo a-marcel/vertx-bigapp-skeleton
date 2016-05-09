@@ -30,6 +30,12 @@ public class HttpRequestConverter {
   }
 
   public static void toJson(HttpRequest obj, JsonObject json) {
+    if (obj.getBodyString() != null) {
+      json.put("bodyString", obj.getBodyString());
+    }
+    if (obj.getCookies() != null) {
+      json.put("cookies", obj.getCookies());
+    }
     json.put("ended", obj.isEnded());
     json.put("ssl", obj.isSSL());
   }

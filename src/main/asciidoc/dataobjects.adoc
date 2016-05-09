@@ -8,6 +8,8 @@
 [frame="topbot"]
 |===
 ^|Name | Type ^| Description
+|[[bodyString]]`bodyString`|`String`|-
+|[[cookies]]`cookies`|`Json array`|-
 |[[ended]]`ended`|`Boolean`|
 +++
 Has the request ended? I.e. has the entire request, including the body

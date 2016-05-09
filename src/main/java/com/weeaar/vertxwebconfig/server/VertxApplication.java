@@ -25,120 +25,130 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
 public class VertxApplication extends AbstractVerticle {
-    static Logger logger = LoggerFactory.getLogger(VertxApplication.class);
+	static Logger logger = LoggerFactory.getLogger(VertxApplication.class);
 
-    public static void main(String[] args) {
-	Launcher.main(new String[] { "run", "service:" + VertxApplication.class.getName() });
-    }
-
-    @Override
-    public void start() throws Exception {
-	logger.debug("starting");
-
-	ServiceLoader serviceLoader = new ServiceLoader();
-	List<String> verticals = serviceLoader.findVerticles();
-
-	@SuppressWarnings("rawtypes")
-	List<Future> allVerticalFuture = new ArrayList<Future>();
-
-	Config configs = new Config(config());
-
-	if (null != verticals) {
-	    for (String name : verticals) {
-		/*
-		 * Figure out routes
-		 */
-
-		if (!name.endsWith(".js")) {
-		    Method[] methods = Class.forName(name).getMethods();
-		    for (Method method : methods) {
-			if (method.isAnnotationPresent(VertxWebConfig.class)) {
-			    VertxWebConfig vertxWebConfig = method.getAnnotation(VertxWebConfig.class);
-
-			    configs.addConfigFromAnnotation(vertxWebConfig);
-			}
-		    }
-		} else if (name.endsWith(".js")) {
-		    /*
-		     * For JavaScript, we need a json config file
-		     */
-		    /*
-		     * proposal
-		     */
-		    /*
-		     * TODO: make it non blocking
-		     */
-		    Scanner scan = null;
-		    JsonObject configObject = null;
-
-		    try {
-			String javaScriptConfigFile = name.substring(0, name.length() - 3);
-			Enumeration<URL> urls = ClassLoader
-				.getSystemResources(javaScriptConfigFile.concat(".config.json"));
-
-			while (urls.hasMoreElements()) {
-			    URL url = urls.nextElement();
-
-			    scan = new Scanner(url.openStream());
-			    String configJson = "";
-			    while (scan.hasNextLine()) {
-				configJson += scan.nextLine();
-			    }
-
-			    configObject = new JsonObject(configJson);
-			}
-		    } catch (IOException e) {
-			logger.error("Error at opening file", e);
-		    } catch (DecodeException e) {
-			logger.error("Error at decoding file", e);
-		    } finally {
-			if (scan != null) {
-			    scan.close();
-			}
-		    }
-
-		    configs.addConfigFromJsonObject(configObject);
-		}
-
-		/*
-		 * Starting verticle
-		 */
-		Future<String> verticleFuture = Future.future();
-
-		logger.info("Deploy verticle " + name);
-
-		DeploymentOptions options = new DeploymentOptions();
-		options.setConfig(configs);
-
-		vertx.deployVerticle(name, options, verticleFuture.completer());
-		allVerticalFuture.add(verticleFuture);
-	    }
+	public static void main(String[] args) {
+		Launcher.main(new String[] { "run", "service:" + VertxApplication.class.getName() });
 	}
 
-	if (allVerticalFuture.size() > 0) {
-	    CompositeFuture.all(allVerticalFuture).setHandler(ar -> {
-		if (ar.succeeded()) {
-		    logger.info("All verticals successfull deployed");
+	@Override
+	public void start(Future<Void> fut) throws Exception {
+		logger.debug("starting");
 
-		    startServerVerticle(configs);
+		ServiceLoader serviceLoader = new ServiceLoader();
+		List<String> verticals = serviceLoader.findVerticles();
+
+		@SuppressWarnings("rawtypes")
+		List<Future> allVerticalFuture = new ArrayList<Future>();
+
+		Config configs = new Config(config());
+
+		if (null != verticals) {
+			for (String name : verticals) {
+				/*
+				 * Figure out routes
+				 */
+
+				if (!name.endsWith(".js")) {
+					Method[] methods = Class.forName(name).getMethods();
+					for (Method method : methods) {
+						if (method.isAnnotationPresent(VertxWebConfig.class)) {
+							VertxWebConfig vertxWebConfig = method.getAnnotation(VertxWebConfig.class);
+
+							configs.addConfigFromAnnotation(vertxWebConfig);
+						}
+					}
+				} else if (name.endsWith(".js")) {
+					/*
+					 * For JavaScript, we need a json config file
+					 */
+					/*
+					 * proposal
+					 */
+					/*
+					 * TODO: make it non blocking
+					 */
+					Scanner scan = null;
+					JsonObject configObject = null;
+
+					try {
+						String javaScriptConfigFile = name.substring(0, name.length() - 3);
+						Enumeration<URL> urls = ClassLoader
+								.getSystemResources(javaScriptConfigFile.concat(".config.json"));
+
+						while (urls.hasMoreElements()) {
+							URL url = urls.nextElement();
+
+							scan = new Scanner(url.openStream());
+							String configJson = "";
+							while (scan.hasNextLine()) {
+								configJson += scan.nextLine();
+							}
+
+							configObject = new JsonObject(configJson);
+						}
+					} catch (IOException e) {
+						logger.error("Error at opening file", e);
+					} catch (DecodeException e) {
+						logger.error("Error at decoding file", e);
+					} finally {
+						if (scan != null) {
+							scan.close();
+						}
+					}
+
+					configs.addConfigFromJsonObject(configObject);
+				}
+
+				/*
+				 * Starting verticle
+				 */
+				Future<String> verticleFuture = Future.future();
+
+				logger.info("Deploy verticle " + name);
+
+				DeploymentOptions options = new DeploymentOptions();
+				options.setConfig(configs);
+
+				vertx.deployVerticle(name, options, verticleFuture.completer());
+				allVerticalFuture.add(verticleFuture);
+			}
+		}
+
+		if (allVerticalFuture.size() > 0) {
+			CompositeFuture.all(allVerticalFuture).setHandler(ar -> {
+				if (ar.succeeded()) {
+					logger.info("All verticals successfull deployed");
+
+					startServerVerticle(configs, fut);
+				} else {
+					logger.error("Deploying verticals failed", ar.cause());
+				}
+			});
 		} else {
-		    logger.error("Deploying verticals failed", ar.cause());
+			startServerVerticle(configs, fut);
 		}
-	    });
-	} else {
-	    startServerVerticle(configs);
 	}
-    }
 
-    void startServerVerticle(Config config) {
-	if (null != config.getServerConfig()) {
+	void startServerVerticle(Config config, Future<Void> fut) {
+		if (null != config.getServerConfig()) {
 
-	    ServerConfig serverConfig = config.getServerConfig();
+			ServerConfig serverConfig = config.getServerConfig();
 
-	    DeploymentOptions options = new DeploymentOptions();
-	    options.setConfig(config);
+			DeploymentOptions options = new DeploymentOptions();
+			options.setConfig(config);
 
-	    vertx.deployVerticle(serverConfig.getClassName(), options);
+			Future<String> serverFuture = Future.future();
+
+			vertx.deployVerticle(serverConfig.getClassName(), options, serverFuture.completer());
+
+			serverFuture.setHandler(ar -> {
+				if (ar.succeeded()) {
+					fut.complete();
+				} else {
+					fut.fail(ar.cause());
+				}
+			});
+		}
 	}
-    }
 }
